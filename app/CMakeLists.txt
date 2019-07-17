@@ -5,19 +5,24 @@
 
 cmake_minimum_required(VERSION 3.4.1)
 
-add_library(
-             native-lib
-             SHARED
-             src/main/cpp/native-lib.cpp)
-include_directories(src/main/cpp/include)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}")
+#declare the path of source file
+file(GLOB SOURCE src/main/cpp/*.cpp)
+add_library(
+             ffmpegplayer
+             SHARED
+             ${SOURCE})
+
+include_directories(src/main/cpp/include)
+set(my_lib_path "${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}")
+# declare the compile path
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${my_lib_path}")
 
 find_library(
               log-lib
               log )
 target_link_libraries( # Specifies the target library.
-                       native-lib
+                        ffmpegplayer
                         avcodec avfilter avformat avutil swresample swscale
                        # Links the target library to the log library
                        # included in the NDK.
