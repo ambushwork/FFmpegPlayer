@@ -2,29 +2,37 @@ package com.netatmo.ylu.ffmpegplayer
 
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Environment
+import android.util.Log
+import android.view.SurfaceView
 import kotlinx.android.synthetic.main.activity_main.*
+import java.io.File
+
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var player: FFmpegPlayer
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Example of a call to a native method
-        sample_text.text = stringFromJNI()
-    }
+        player = FFmpegPlayer()
+        player.setSurfaceView(surfaceView)
 
-    /**
-     * A native method that is implemented by the 'native-lib' native library,
-     * which is packaged with this application.
-     */
-    external fun stringFromJNI(): String
+        button.setOnClickListener {
+            val file = Environment.getExternalStorageDirectory()
+            val path = file.absolutePath + "/../../sdcard0/input.mp4"
+            val video = File(path)
+            if(video.exists()){
+                player.start(video.absolutePath)
+            } else {
+                Log.e("Main", "File doesn't exist!")
+            }
 
-    companion object {
-
-        // Used to load the 'native-lib' library on application startup.
-        init {
-            System.loadLibrary("ffmpegplayer")
         }
     }
+
+
+
 }

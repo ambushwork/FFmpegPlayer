@@ -22,7 +22,10 @@ find_library(
               log )
 target_link_libraries( # Specifies the target library.
                 ffmpegplayer
-                avcodec avfilter avformat avutil swresample swscale
+                avformat avcodec avutil swresample swscale avfilter
                # Links the target library to the log library
                # included in the NDK.
-               ${log-lib} )
+               ${log-lib}
+                z
+                OpenSLES
+                 android)
