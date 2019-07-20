@@ -36,6 +36,11 @@ class MainActivity : AppCompatActivity() {
             }
 
         }
+        button_transform.setOnClickListener {
+            path?.let{
+                transform(it)
+            }
+        }
     }
 
     private fun chooseFile() {
@@ -67,4 +72,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun transform(path: String){
+        val audio = File(path)
+        if(audio.exists()){
+            val file = File("/storage/emulated/0/output.pcm")
+            player.sound(path, file.absolutePath)
+        }
+    }
 }

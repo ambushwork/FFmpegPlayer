@@ -20,7 +20,15 @@ public class FFmpegPlayer implements SurfaceHolder.Callback{
     public void start(String path) {
         native_start(path,surfaceHolder.getSurface());
     }
-    public  native void native_start(String path, Surface surface);
+
+    public void sound(String input, String output){
+        native_sound(input, output);
+    }
+
+    public native void native_start(String path, Surface surface);
+
+    public native void native_sound(String input, String output);
+
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
 

@@ -37,4 +37,12 @@
             android:text="Play"
     />
 
+    <Button
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:gravity="center"
+            android:id="@+id/button_transform"
+            android:text="Transform"
+    />
+
 </LinearLayout>

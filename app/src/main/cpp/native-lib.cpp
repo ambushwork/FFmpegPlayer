@@ -4,11 +4,13 @@
 #include <zconf.h>
 #include <android/log.h>
 
+#define MAX_AUDIO_FRME_SIZE 48000 *4
 extern "C" {
 #include "libavcodec/avcodec.h"
 #include <libswscale/swscale.h>
 #include <libavutil/imgutils.h>
 #include <libavformat/avformat.h>
+#include <libswresample/swresample.h>
 }
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -140,4 +142,95 @@ Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_native_1start(JNIEnv *env, jobjec
    avcodec_close(codecContext);
    avformat_free_context(formatContext);
     env->ReleaseStringUTFChars(path_, path);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_native_1sound(JNIEnv *env, jobject instance, jstring input_,
+                                                             jstring output_) {
+    const char *input = env->GetStringUTFChars(input_, 0);
+    const char *output = env->GetStringUTFChars(output_, 0);
+
+
+    avformat_network_init();
+    AVFormatContext *formatContext = avformat_alloc_context();
+    if(avformat_open_input(&formatContext, input, NULL,NULL)){
+        __android_log_write(ANDROID_LOG_DEBUG, "FFmpeg mp3 player","cannot open mp3 file");
+        return;
+    }
+    if(avformat_find_stream_info(formatContext, NULL)){
+        __android_log_write(ANDROID_LOG_DEBUG, "FFmpeg mp3 player","cannot get mp3 stream info");
+        return;
+    }
+
+    int audio_stream_index= -1;
+    for(int i = 0; i < formatContext -> nb_streams; ++i){
+        //Get codec parameter then get codec type
+        if(formatContext -> streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO){
+            audio_stream_index = i;
+            break;
+        }
+    }
+    AVCodecParameters *codecParameters = formatContext->streams[audio_stream_index]->codecpar;
+    AVCodec *dec = avcodec_find_decoder(codecParameters->codec_id);
+    AVCodecContext *codecContext = avcodec_alloc_context3(dec);
+    avcodec_parameters_to_context(codecContext,codecParameters);
+
+    SwrContext *swrContext = swr_alloc();
+
+    //Input sample
+    AVSampleFormat in_sample = codecContext->sample_fmt;
+    int in_sample_rate = codecContext->sample_rate;
+    uint64_t in_ch_layout = codecContext->channel_layout;
+
+    //Output sample (fixed)
+    AVSampleFormat  out_sample = AV_SAMPLE_FMT_S16;
+    int out_sample_rate = 44100;
+    uint64_t out_ch_layout = AV_CH_LAYOUT_STEREO;
+
+    swr_alloc_set_opts(swrContext, out_ch_layout, out_sample, out_sample_rate,
+                       in_ch_layout, in_sample, in_sample_rate, 0 , NULL);
+
+    swr_init(swrContext);
+
+    //Buffer size = channel count * sample rate
+    uint8_t *out_buffer = static_cast<uint8_t *>(av_malloc(2 * 44100));
+
+    //Open mp3 file
+    FILE *fp_pcm = fopen(output, "wb");
+
+    AVPacket *packet = av_packet_alloc();
+
+    while(av_read_frame(formatContext, packet)>=0){
+        avcodec_send_packet(codecContext, packet);
+        AVFrame *frame = av_frame_alloc();
+        int ret = avcodec_receive_frame(codecContext, frame);
+        if(ret ==  AVERROR(EAGAIN)){
+            continue;
+        } else {
+            __android_log_write(ANDROID_LOG_DEBUG, "FFmpeg mp3 player","decode finished!");
+        }
+        if(packet->stream_index != audio_stream_index){
+            continue;
+        }
+
+
+        //frame to unified format
+        swr_convert(swrContext, &out_buffer, 2* 44100, (const uint8_t **)frame->data, frame->nb_samples);
+
+        int out_channel_nb =  av_get_channel_layout_nb_channels(out_ch_layout);
+        //out_buffer-->File
+        int out_buffer_size = av_samples_get_buffer_size(NULL,out_channel_nb,frame->nb_samples,out_sample,1);
+        fwrite(out_buffer, 1, out_buffer_size, fp_pcm);
+    }
+    fclose(fp_pcm);
+    av_free(out_buffer);
+    swr_free(&swrContext);
+    avcodec_close(codecContext);
+    avformat_close_input(&formatContext);
+
+
+
+    env->ReleaseStringUTFChars(input_, input);
+    env->ReleaseStringUTFChars(output_, output);
 }
