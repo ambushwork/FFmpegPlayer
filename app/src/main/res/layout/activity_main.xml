@@ -25,8 +25,16 @@
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:gravity="center"
-            android:id="@+id/button"
-            android:text="Open"
+            android:id="@+id/button_select"
+            android:text="Select"
+    />
+
+    <Button
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:gravity="center"
+            android:id="@+id/button_play"
+            android:text="Play"
     />
 
 </LinearLayout>

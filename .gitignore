@@ -88,6 +88,8 @@ lint/tmp/
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
+/.idea/markdown-navigator
+/.idea/markdown*.xml
 .DS_Store
 /build
 /captures
