@@ -1,0 +1,12 @@
+//
+// Created by LUYI on 2019/8/11.
+//
+
+#ifndef FFMPEGPLAYER_JAVACALLHELPER_H
+#define FFMPEGPLAYER_JAVACALLHELPER_H
+
+#endif //FFMPEGPLAYER_JAVACALLHELPER_H
+
+class JavaCallHelper{
+
+};

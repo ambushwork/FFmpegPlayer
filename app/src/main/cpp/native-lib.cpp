@@ -3,6 +3,7 @@
 #include <android/native_window_jni.h>
 #include <zconf.h>
 #include <android/log.h>
+#include "FFmpegCore.h"
 
 #define MAX_AUDIO_FRME_SIZE 48000 *4
 extern "C" {
@@ -233,4 +234,17 @@ Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_native_1sound(JNIEnv *env, jobjec
 
     env->ReleaseStringUTFChars(input_, input);
     env->ReleaseStringUTFChars(output_, output);
+}
+
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_native_1prepare(JNIEnv *env, jobject instance, jstring path_) {
+    const char *path = env->GetStringUTFChars(path_, 0);
+    JavaCallHelper *helper =new  JavaCallHelper();
+    FFmpegCore *fFmpegCore = new FFmpegCore(helper, const_cast<char *>(path));
+    // TODO
+    fFmpegCore -> prepare();
+    env->ReleaseStringUTFChars(path_, path);
 }

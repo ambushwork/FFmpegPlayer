@@ -29,6 +29,8 @@ public class FFmpegPlayer implements SurfaceHolder.Callback{
 
     public native void native_sound(String input, String output);
 
+    public native void native_prepare(String path);
+
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
 

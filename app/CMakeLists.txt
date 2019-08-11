@@ -5,7 +5,7 @@
 
 cmake_minimum_required(VERSION 3.4.1)
 file(GLOB SOURCE src/main/cpp/*.cpp)
-
+#aux_source_directory()
 
 add_library(
              ffmpegplayer
@@ -22,8 +22,10 @@ find_library(
               log )
 target_link_libraries( # Specifies the target library.
                 ffmpegplayer
+                -Wl,--start-group
                 avformat avcodec avutil swresample swscale avfilter
-               # Links the target library to the log library
+                -Wl,--end-group
+        # Links the target library to the log library
                # included in the NDK.
                ${log-lib}
                 z
