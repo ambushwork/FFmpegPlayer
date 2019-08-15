@@ -5,6 +5,8 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 public class FFmpegPlayer implements SurfaceHolder.Callback{
+    private OnPrepareListener onPrepareListener;
+
     static {
         System.loadLibrary("ffmpegplayer");
     }
@@ -30,6 +32,27 @@ public class FFmpegPlayer implements SurfaceHolder.Callback{
     public native void native_sound(String input, String output);
 
     public native void native_prepare(String path);
+
+    public void prepare(String path){
+        native_prepare(path);
+    }
+
+    public void onPrepare(){
+        if(this.onPrepareListener != null){
+            onPrepareListener.onPrepare();
+        }
+    }
+
+    public void setOnPrepareListener(OnPrepareListener onPrepareListener){
+        this.onPrepareListener = onPrepareListener;
+    }
+
+
+    public interface OnPrepareListener{
+        void onPrepare();
+    }
+
+
 
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {

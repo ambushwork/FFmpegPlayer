@@ -14,5 +14,4 @@ public:
 
     virtual ~AudioChannel();
 };
-
 #endif //FFMPEGPLAYER_AUDIOCHANNEL_H

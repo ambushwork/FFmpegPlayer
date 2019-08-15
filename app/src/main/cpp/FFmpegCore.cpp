@@ -41,6 +41,46 @@ void FFmpegCore::_prepare(){
         //LOGE("Open media failed! $s",av_err2str(ret));
 
     }
+    ret = avformat_find_stream_info(formatContext, 0);
+    if(ret < 0){
+        //todo
+        return;
+    }
+    int video_stream_index= -1;
+    for(int i = 0; i < formatContext -> nb_streams; ++i){
+        //Get codec parameter then get codec type
+        if(formatContext -> streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO){
+            video_stream_index = i;
+            break;
+        }
+    }
+
+    AVCodecParameters *codecpar = formatContext -> streams[video_stream_index]->codecpar;
+
+    //Decoder h264
+    AVCodec *dec = avcodec_find_decoder(codecpar ->codec_id);
+
+    //Context of decoder
+    AVCodecContext *codecContext = avcodec_alloc_context3(dec);
+    //Copy codec parameters to context
+    ret = avcodec_parameters_to_context(codecContext, codecpar);
+    if(ret < 0){
+        //todo
+        return;
+    }
+
+    ret = avcodec_open2(codecContext, dec, 0);
+
+    if(ret < 0){
+        //todo
+        return;
+    }
+
+    audioChannel = new AudioChannel();
+    videoChannel = new VideoChannel();
+
+    javaCallHelper->onPrepared(THREAD_CHILD);
+
 };
 
 void FFmpegCore::prepare() {

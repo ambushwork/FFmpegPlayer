@@ -11,9 +11,7 @@ import android.view.SurfaceView
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
 import android.support.v4.content.FileProvider
-
-
-
+import android.view.View.VISIBLE
 
 class MainActivity : AppCompatActivity() {
 
@@ -26,19 +24,30 @@ class MainActivity : AppCompatActivity() {
 
         player = FFmpegPlayer()
         player.setSurfaceView(surfaceView)
-
+        player.setOnPrepareListener {
+            runOnUiThread{
+                button_play.visibility = VISIBLE
+            }
+        }
         button_select.setOnClickListener {
             chooseFile()
+
         }
         button_play.setOnClickListener {
             path?.let {
-                playFile(it)
+                //playFile(it)
+
             }
 
         }
         button_transform.setOnClickListener {
             path?.let{
                 transform(it)
+            }
+        }
+        button_prepare.setOnClickListener {
+            path?.let{
+                prepare(it)
             }
         }
     }
@@ -78,5 +87,9 @@ class MainActivity : AppCompatActivity() {
             val file = File("/storage/emulated/0/output.pcm")
             player.sound(path, file.absolutePath)
         }
+    }
+
+    private fun prepare(path: String){
+        player.prepare(path)
     }
 }

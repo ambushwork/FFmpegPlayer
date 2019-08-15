@@ -236,13 +236,18 @@ Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_native_1sound(JNIEnv *env, jobjec
     env->ReleaseStringUTFChars(output_, output);
 }
 
+JavaVM *javaVM;
+jint JNI_OnLoad(JavaVM *vm, void *reserved){
+    javaVM = vm;
+    return JNI_VERSION_1_4;
+}
 
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_native_1prepare(JNIEnv *env, jobject instance, jstring path_) {
     const char *path = env->GetStringUTFChars(path_, 0);
-    JavaCallHelper *helper =new  JavaCallHelper();
+    JavaCallHelper *helper =new  JavaCallHelper(javaVM,env, instance);
     FFmpegCore *fFmpegCore = new FFmpegCore(helper, const_cast<char *>(path));
     // TODO
     fFmpegCore -> prepare();
