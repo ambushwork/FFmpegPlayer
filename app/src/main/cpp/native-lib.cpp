@@ -243,13 +243,78 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved){
 }
 
 
+FFmpegCore *fFmpegCore;
+ANativeWindow *window = 0;
+pthread_mutex_t mutex = PTHREAD_COND_INITIALIZER;
+
+void renderFrame(uint8_t *src_data, int lineSize, int width, int height){
+    pthread_mutex_lock(&mutex);
+    if(!window){
+        LOGE("window nullptr");
+        pthread_mutex_unlock(&mutex);
+        return;
+    }
+
+    ANativeWindow_setBuffersGeometry(window, width, height ,WINDOW_FORMAT_RGBA_8888);
+    ANativeWindow_Buffer outBuffer;
+    int ret = ANativeWindow_lock(window, &outBuffer,0);
+    if(ret){
+        LOGE("render frame %d", ret);
+        ANativeWindow_release(window);
+        window = 0;
+        pthread_mutex_unlock(&mutex);
+        return;
+    }
+    LOGE("ANativeWindow_lock OK");
+    //assign data to buffer
+    uint8_t  *dst_data = static_cast<uint8_t  *>(outBuffer.bits);
+    // The number of *pixels* that a line in the buffer takes in
+    // memory. This may be >= width.
+    //ARGB needs to multiple 4
+    int dst_lineSize = outBuffer.stride * 4;
+
+    for(int i = 0; i<outBuffer.height; ++i){
+        LOGE("renderFrame loop")
+        memcpy(dst_data + i*dst_lineSize, src_data + i*lineSize, dst_lineSize);
+    }
+    ANativeWindow_unlockAndPost(window);
+    pthread_mutex_unlock(&mutex);
+}
+
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_native_1prepare(JNIEnv *env, jobject instance, jstring path_) {
     const char *path = env->GetStringUTFChars(path_, 0);
     JavaCallHelper *helper =new  JavaCallHelper(javaVM,env, instance);
-    FFmpegCore *fFmpegCore = new FFmpegCore(helper, const_cast<char *>(path));
-    // TODO
+    fFmpegCore = new FFmpegCore(helper, const_cast<char *>(path));
+    fFmpegCore -> setRenderCallback(renderFrame);
     fFmpegCore -> prepare();
     env->ReleaseStringUTFChars(path_, path);
+}
+
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_native_1start2(JNIEnv *env, jobject instance) {
+
+    if(fFmpegCore){
+        fFmpegCore -> start();
+    }
+
+}
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_setSufaceNative(JNIEnv *env, jobject instance, jobject surface) {
+    pthread_mutex_lock(&mutex);
+    if (window) {
+        ANativeWindow_release(window);
+        window = 0;
+    }
+    window = ANativeWindow_fromSurface(env, surface);
+
+    pthread_mutex_unlock(&mutex);
+
 }

@@ -23,15 +23,23 @@ public class FFmpegPlayer implements SurfaceHolder.Callback{
         native_start(path,surfaceHolder.getSurface());
     }
 
+    public void start2(){
+        native_start2();
+    }
+
     public void sound(String input, String output){
         native_sound(input, output);
     }
 
     public native void native_start(String path, Surface surface);
 
+    public native void native_start2();
+
     public native void native_sound(String input, String output);
 
     public native void native_prepare(String path);
+
+    public native void setSufaceNative(Surface surface);
 
     public void prepare(String path){
         native_prepare(path);
@@ -43,6 +51,12 @@ public class FFmpegPlayer implements SurfaceHolder.Callback{
         }
     }
 
+    public void onError(int errorCode){
+        if(this.onPrepareListener != null){
+            onPrepareListener.onError(errorCode);
+        }
+    }
+
     public void setOnPrepareListener(OnPrepareListener onPrepareListener){
         this.onPrepareListener = onPrepareListener;
     }
@@ -50,6 +64,7 @@ public class FFmpegPlayer implements SurfaceHolder.Callback{
 
     public interface OnPrepareListener{
         void onPrepare();
+        void onError(int errorCode);
     }
 
 
@@ -62,6 +77,8 @@ public class FFmpegPlayer implements SurfaceHolder.Callback{
     @Override
     public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
         this.surfaceHolder = surfaceHolder;
+
+        setSufaceNative(surfaceHolder.getSurface());
     }
 
     @Override

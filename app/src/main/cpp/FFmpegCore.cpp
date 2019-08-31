@@ -2,14 +2,7 @@
 // Created by LUYI on 2019/8/11.
 //
 
-#include <pthread.h>
-
 #include "FFmpegCore.h"
-#include "macro.h"
-
-extern "C" {
-#include <libavformat/avformat.h>
-}
 
 FFmpegCore::FFmpegCore(JavaCallHelper *javaCallHelper, char* path) {
     this->javaCallHelper = javaCallHelper;
@@ -21,7 +14,7 @@ FFmpegCore::FFmpegCore(JavaCallHelper *javaCallHelper, char* path) {
 
 FFmpegCore::~FFmpegCore() {
     DELETE(dataSource);
-    DELETE(javaCallHelper)
+    DELETE(javaCallHelper);
 }
 
 void *task_prepare(void* args){
@@ -30,8 +23,42 @@ void *task_prepare(void* args){
     return 0;
 }
 
+void *task_start(void* args){
+    FFmpegCore *fFmpegCore = static_cast<FFmpegCore *>(args);
+    fFmpegCore -> _start();
+    return 0;
+}
+
+void FFmpegCore::_start(){
+    while(isPlaying){
+        AVPacket *avPacket =av_packet_alloc();
+        int ret = av_read_frame(formatContext, avPacket);
+        if(!ret){
+            //Thread safe queue
+            //LOGE("av_read_frame OK")
+            if(videoChannel && avPacket-> stream_index == videoChannel->id){
+                //LOGE("video channel push packets OK")
+                videoChannel->packets.push(avPacket);
+            } else if(audioChannel && avPacket->stream_index == audioChannel -> id){
+                audioChannel->packets.push(avPacket);
+            }
+        } else if( ret == AVERROR_EOF){
+            //LOGE("av_read_frame FINISH")
+        } else {
+            //LOGE("av_read_frame FAIL")
+        }
+
+    }
+
+    isPlaying = 0;
+
+    videoChannel -> stop();
+    audioChannel -> stop();
+
+}
+
 void FFmpegCore::_prepare(){
-    AVFormatContext* formatContext = avformat_alloc_context();
+    formatContext = avformat_alloc_context();
     AVDictionary *dictionary = 0;
     av_dict_set(&dictionary, "timeout", "1000000", 0);
     int ret = avformat_open_input(&formatContext,dataSource, 0, &dictionary);
@@ -47,11 +74,13 @@ void FFmpegCore::_prepare(){
         return;
     }
     int video_stream_index= -1;
+    int audio_stream_index= -1;
     for(int i = 0; i < formatContext -> nb_streams; ++i){
         //Get codec parameter then get codec type
         if(formatContext -> streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO){
             video_stream_index = i;
-            break;
+        } else if(formatContext -> streams[i] ->codecpar ->codec_type == AVMEDIA_TYPE_AUDIO){
+            audio_stream_index = i;
         }
     }
 
@@ -64,6 +93,10 @@ void FFmpegCore::_prepare(){
     AVCodecContext *codecContext = avcodec_alloc_context3(dec);
     //Copy codec parameters to context
     ret = avcodec_parameters_to_context(codecContext, codecpar);
+    audioChannel = new AudioChannel(audio_stream_index,codecContext);
+    videoChannel = new VideoChannel(video_stream_index,codecContext);
+    videoChannel->setRenderCallback(renderCallback);
+
     if(ret < 0){
         //todo
         return;
@@ -76,14 +109,27 @@ void FFmpegCore::_prepare(){
         return;
     }
 
-    audioChannel = new AudioChannel();
-    videoChannel = new VideoChannel();
+
 
     javaCallHelper->onPrepared(THREAD_CHILD);
+
 
 };
 
 void FFmpegCore::prepare() {
     //create new thread to load file or stream
     pthread_create(&pid_prepare, 0,task_prepare ,this);
+}
+
+void FFmpegCore::start() {
+    isPlaying = 1;
+    if(videoChannel){
+        LOGE("FFmpegCore -> start")
+        videoChannel->start();
+    }
+    pthread_create(&pid_start, 0,task_start ,this);
+}
+
+void FFmpegCore::setRenderCallback(RenderCallback renderCallback){
+    this->renderCallback = renderCallback;
 }

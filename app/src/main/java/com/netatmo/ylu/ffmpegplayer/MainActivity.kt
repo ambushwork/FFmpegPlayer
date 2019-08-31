@@ -24,11 +24,18 @@ class MainActivity : AppCompatActivity() {
 
         player = FFmpegPlayer()
         player.setSurfaceView(surfaceView)
-        player.setOnPrepareListener {
-            runOnUiThread{
-                button_play.visibility = VISIBLE
+        player.setOnPrepareListener(object : FFmpegPlayer.OnPrepareListener {
+            override fun onPrepare() {
+                runOnUiThread{
+                    button_play.visibility = VISIBLE
+                }
             }
-        }
+
+            override fun onError(errorCode: Int) {
+                TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+            }
+
+        })
         button_select.setOnClickListener {
             chooseFile()
 
@@ -36,7 +43,7 @@ class MainActivity : AppCompatActivity() {
         button_play.setOnClickListener {
             path?.let {
                 //playFile(it)
-
+                player.start2()
             }
 
         }

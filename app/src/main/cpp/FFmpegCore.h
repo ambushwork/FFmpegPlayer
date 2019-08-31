@@ -10,6 +10,16 @@
 #include "AudioChannel.h"
 #include "VideoChannel.h"
 #include <cstring>
+#include <pthread.h>
+#include "macro.h"
+
+
+extern "C" {
+#include <libavformat/avformat.h>
+};
+
+
+
 
 class FFmpegCore{
 public:
@@ -21,12 +31,22 @@ public:
 
     void _prepare();
 
+    void start();
+
+    void _start();
+
+    void setRenderCallback(RenderCallback renderCallback);
+
 private:
     JavaCallHelper *javaCallHelper = 0;
     AudioChannel *audioChannel =0;
     VideoChannel *videoChannel = 0;
     char *dataSource;
     pthread_t pid_prepare;
+    pthread_t pid_start;
+    bool isPlaying;
+    AVFormatContext* formatContext;
+    RenderCallback renderCallback;
 };
 
 #endif //FFMPEGPLAYER_FFMPEGCORE_H
