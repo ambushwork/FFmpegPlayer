@@ -14,7 +14,7 @@ extern "C"{
 typedef void (*RenderCallback) (uint8_t *, int, int, int);
 class VideoChannel : public BaseChannel{
 public:
-    VideoChannel(int id, AVCodecContext* avCodecContext);
+    VideoChannel(int id, AVCodecContext* avCodecContext, int fps);
 
     virtual ~VideoChannel();
 
@@ -32,6 +32,7 @@ private:
     pthread_t pid_video_decode;
     pthread_t pid_video_start;
     RenderCallback  renderCallback;
+    int fps;
 };
 
 #endif //FFMPEGPLAYER_VIDEOCHANNEL_H

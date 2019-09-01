@@ -75,10 +75,14 @@ void FFmpegCore::_prepare(){
     }
     int video_stream_index= -1;
     int audio_stream_index= -1;
+    int fps = -1;
     for(int i = 0; i < formatContext -> nb_streams; ++i){
         //Get codec parameter then get codec type
         if(formatContext -> streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO){
             video_stream_index = i;
+            AVRational frame_rate =  formatContext->streams[i]->avg_frame_rate;
+            fps = av_q2d(frame_rate);
+
         } else if(formatContext -> streams[i] ->codecpar ->codec_type == AVMEDIA_TYPE_AUDIO){
             audio_stream_index = i;
         }
@@ -94,7 +98,7 @@ void FFmpegCore::_prepare(){
     //Copy codec parameters to context
     ret = avcodec_parameters_to_context(codecContext, codecpar);
     audioChannel = new AudioChannel(audio_stream_index,codecContext);
-    videoChannel = new VideoChannel(video_stream_index,codecContext);
+    videoChannel = new VideoChannel(video_stream_index,codecContext, fps);
     videoChannel->setRenderCallback(renderCallback);
 
     if(ret < 0){

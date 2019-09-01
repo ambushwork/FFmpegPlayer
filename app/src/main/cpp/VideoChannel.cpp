@@ -4,7 +4,9 @@
 
 #include "VideoChannel.h"
 
-VideoChannel::VideoChannel(int id,AVCodecContext* avCodecContext) :BaseChannel(id, avCodecContext){}
+VideoChannel::VideoChannel(int id,AVCodecContext* avCodecContext,int fps) :BaseChannel(id, avCodecContext){
+    this->fps = fps;
+}
 
 VideoChannel::~VideoChannel() {
 
@@ -84,7 +86,8 @@ void VideoChannel::video_play() {
     int dst_linesize[4];
     av_image_alloc(dst_data, dst_linesize, avCodecContext->width, avCodecContext->height, AV_PIX_FMT_RGBA, 1);
 
-
+    //according to fps to control the delay of every frame
+    double delay_time_per_frame = 1.0/fps;
     while (isPlaying){
         //LOGE("video_play loop")
         int ret = frames.pop(frame);
@@ -95,6 +98,10 @@ void VideoChannel::video_play() {
         //LOGE("video_play sws_scale")
         sws_scale(swsContext, frame->data,
                 frame->linesize, 0 , avCodecContext->height,dst_data, dst_linesize);
+        //every frame has its own extra delay (time of drawing the frame)
+        double extra_delay = frame->repeat_pict / (2 * fps);
+        double real_delay = extra_delay + delay_time_per_frame;
+        av_usleep(real_delay * 1000000);
         renderCallback(dst_data[0], dst_linesize[0], avCodecContext->width, avCodecContext->height);
         releaseAVFrame(&frame);
     }
