@@ -31,6 +31,11 @@ void *task_start(void* args){
 
 void FFmpegCore::_start(){
     while(isPlaying){
+        // memory leak point
+        if(videoChannel -> packets.size() > 100){
+            av_usleep(10 * 1000);
+            continue;
+        }
         AVPacket *avPacket =av_packet_alloc();
         int ret = av_read_frame(formatContext, avPacket);
         if(!ret){

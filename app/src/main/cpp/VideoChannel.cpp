@@ -67,6 +67,10 @@ void VideoChannel::video_decode() {
             //LOGE("avcodec_receive_frame FAIL")
             break;
         }
+        // memory leak point
+        while(isPlaying && frames.size() > 100){
+            av_usleep(10 *1000);
+        }
         //LOGE("video_decode push frames OK")
         frames.push(frame);
     }
