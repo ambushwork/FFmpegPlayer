@@ -136,6 +136,10 @@ void FFmpegCore::start() {
         LOGE("FFmpegCore -> start")
         videoChannel->start();
     }
+    if(audioChannel){
+        audioChannel->start();
+    }
+
     pthread_create(&pid_start, 0,task_start ,this);
 }
 
