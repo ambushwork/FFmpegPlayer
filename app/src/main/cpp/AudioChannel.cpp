@@ -5,7 +5,7 @@
 #include "AudioChannel.h"
 #include "macro.h"
 
-AudioChannel::AudioChannel(int id,AVCodecContext* codecContext) : BaseChannel(id, codecContext) {
+AudioChannel::AudioChannel(int id,AVCodecContext* codecContext,AVRational time_base) : BaseChannel(id, codecContext, time_base) {
     out_channels = av_get_channel_layout_nb_channels(AV_CH_LAYOUT_STEREO);
     out_sampleSize = av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
     out_sampleRate = 44100;
@@ -64,17 +64,16 @@ void AudioChannel::stop() {
 void AudioChannel::audio_decode() {
     AVPacket *packet = 0;
     while(isPlaying){
-        //LOGE("video_decode loop")
         int ret = packets.pop(packet);
         if(!ret){
             //fail
-            //LOGE("video_decode packet data fail")
+            LOGE("video_decode packet data fail")
             continue;
         }
         ret = avcodec_send_packet(avCodecContext, packet);
         //LOGE("video_decode avcodec_send_packet OK")
         if(ret){
-            //LOGE("avcodec_send_packet FAIL %s", av_err2str(ret));
+            LOGE("avcodec_send_packet FAIL %s", av_err2str(ret));
             //Fail to send packet
             break;
         }
@@ -83,17 +82,17 @@ void AudioChannel::audio_decode() {
         ret =  avcodec_receive_frame(avCodecContext, frame);
         if(ret == AVERROR(EAGAIN)){
             //Restart
-            //LOGE("avcodec_receive_frame RESTART")
+            LOGE("avcodec_receive_frame RESTART")
             continue;
         } else if(ret){
-            //LOGE("avcodec_receive_frame FAIL")
+            LOGE("avcodec_receive_frame FAIL")
             break;
         }
         // memory leak point
         while(isPlaying && frames.size() > 100){
             av_usleep(10 *1000);
         }
-        //LOGE("video_decode push frames OK")
+        LOGE("video_decode push frames OK")
         frames.push(frame);
     }
     releaseAVPacket(&packet);
@@ -257,6 +256,9 @@ int AudioChannel::getPCM() {
         //输入数据量
         int out_samples = swr_convert(swrContext, &out_buffers, out_max_samples,
                                       (const uint8_t **) (frame->data), frame->nb_samples);
+
+        //get audio time
+        audio_time = frame->best_effort_timestamp * av_q2d(time_base);
 
         // 获取swr_convert转换后 out_samples个 *2 （16位）*2（双声道）
         pcm_data_size = out_samples * out_sampleSize * out_channels;

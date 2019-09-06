@@ -15,7 +15,7 @@ extern "C"{
 
 class AudioChannel : public BaseChannel{
 public:
-    AudioChannel(int id, AVCodecContext* formatContext);
+    AudioChannel(int id, AVCodecContext* formatContext,AVRational time_base);
 
     virtual ~AudioChannel();
 
@@ -34,6 +34,7 @@ public:
     int out_sampleSize;
     int out_sampleRate;
     int out_buffers_size;
+    double audio_time = 0;
 
 private:
     pthread_t pid_start;

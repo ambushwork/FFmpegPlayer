@@ -4,8 +4,34 @@
 
 #include "VideoChannel.h"
 
-VideoChannel::VideoChannel(int id,AVCodecContext* avCodecContext,int fps) :BaseChannel(id, avCodecContext){
+void dropAVPacket(queue<AVPacket *> &q){
+    while(!q.empty()){
+        AVPacket *avPacket = q.front();
+        //I frame, B frame, P frame
+        //Can not drop I frame, I frame is key frame
+        if(avPacket->flags != AV_PKT_FLAG_KEY){
+            BaseChannel::releaseAVPacket(&avPacket);
+            q.pop();
+        } else {
+            break;
+        }
+    }
+}
+
+
+void dropAVFrame(queue<AVFrame *> &q){
+    if(!q.empty()){
+        AVFrame *avFrame = q.front();
+        BaseChannel::releaseAVFrame(&avFrame);
+        q.pop();
+    }
+}
+
+
+VideoChannel::VideoChannel(int id,AVCodecContext* avCodecContext,int fps,AVRational time_base) :BaseChannel(id, avCodecContext, time_base){
     this->fps = fps;
+    packets.setSyncHandler(dropAVPacket);
+    frames.setSyncHandler(dropAVFrame);
 }
 
 VideoChannel::~VideoChannel() {
@@ -105,7 +131,35 @@ void VideoChannel::video_play() {
         //every frame has its own extra delay (time of drawing the frame)
         double extra_delay = frame->repeat_pict / (2 * fps);
         double real_delay = extra_delay + delay_time_per_frame;
-        av_usleep(real_delay * 1000000);
+        //av_usleep(real_delay * 1000000);
+
+        double video_time = frame->best_effort_timestamp * av_q2d(time_base);
+        if(!audioChannel){
+            av_usleep(real_delay * 1000000);
+        } else {
+            double audio_time = audioChannel->audio_time;
+            //Get the video audio time diff
+            double time_diff = video_time - audio_time;
+            if(time_diff > 0){
+                //video faster than audio, wait for audio
+                if(time_diff > 1){
+                    av_usleep(real_delay *2 * 1000000);
+                } else {
+                    av_usleep((real_delay + time_diff) * 1000000);
+                }
+            } else {
+                //video slower than audio, catch audio (try to drop some packet)
+                if(fabs(time_diff) >= (double) 0.05){
+                    //before decode
+                    //packets.sync();
+                    //after decode
+                    frames.sync();
+                    continue;
+                }
+            }
+        }
+
+
         renderCallback(dst_data[0], dst_linesize[0], avCodecContext->width, avCodecContext->height);
         releaseAVFrame(&frame);
     }
@@ -118,4 +172,9 @@ void VideoChannel::video_play() {
 
 void VideoChannel::setRenderCallback(RenderCallback callback) {
         this->renderCallback = callback;
+}
+
+
+void VideoChannel::setAudioChannel(AudioChannel *audioChannel) {
+    this->audioChannel = audioChannel;
 }

@@ -9,7 +9,7 @@ using namespace std;
 template<typename T>
 class SafeQueue {
     typedef void (*ReleaseCallback)(T *);
-
+    typedef void (*SyncHandler)(queue<T> &);
 public:
     SafeQueue() {
         pthread_mutex_init(&mutex, 0);
@@ -123,6 +123,16 @@ public:
         this->releaseCallback = releaseCallback;
     }
 
+    void setSyncHandler(SyncHandler syncHandler) {
+        this->syncHandler = syncHandler;
+    }
+
+    void sync(){
+        pthread_mutex_lock(&mutex);
+        syncHandler(q);
+        pthread_mutex_unlock(&mutex);
+    }
+
 
 private:
     queue<T> q;
@@ -130,6 +140,7 @@ private:
     pthread_cond_t cond;
     int work;//标记队列是否工作
     ReleaseCallback releaseCallback;
+    SyncHandler syncHandler;
 };
 
 

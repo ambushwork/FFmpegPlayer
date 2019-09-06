@@ -81,48 +81,53 @@ void FFmpegCore::_prepare(){
     int video_stream_index= -1;
     int audio_stream_index= -1;
     int fps = -1;
-    for(int i = 0; i < formatContext -> nb_streams; ++i){
-        //Get codec parameter then get codec type
-        if(formatContext -> streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO){
-            video_stream_index = i;
-            AVRational frame_rate =  formatContext->streams[i]->avg_frame_rate;
-            fps = av_q2d(frame_rate);
-
-        } else if(formatContext -> streams[i] ->codecpar ->codec_type == AVMEDIA_TYPE_AUDIO){
-            audio_stream_index = i;
+    AVRational audio_time_base;
+    AVRational video_time_base;
+    for (int i = 0; i < formatContext->nb_streams; ++i) {
+        AVStream *stream = formatContext->streams[i];
+        AVCodecParameters *codecParameters = stream->codecpar;
+        AVCodec *codec = avcodec_find_decoder(codecParameters->codec_id);
+        if (!codec) {
+            if (javaCallHelper) {
+                //javaCallHelper->onError(THREAD_CHILD, FFMPEG_FIND_DECODER_FAIL);
+            }
+            return;
         }
-    }
+        AVCodecContext *codecContext = avcodec_alloc_context3(codec);
 
-    AVCodecParameters *codecpar = formatContext -> streams[video_stream_index]->codecpar;
-
-    //Decoder h264
-    AVCodec *dec = avcodec_find_decoder(codecpar ->codec_id);
-
-    //Context of decoder
-    AVCodecContext *codecContext = avcodec_alloc_context3(dec);
-    //Copy codec parameters to context
-    ret = avcodec_parameters_to_context(codecContext, codecpar);
-    audioChannel = new AudioChannel(audio_stream_index,codecContext);
-    videoChannel = new VideoChannel(video_stream_index,codecContext, fps);
+        if (!codecContext) {
+            if (javaCallHelper) {
+                //javaCallHelper->onError(THREAD_CHILD, FFMPEG_ALLOC_CODEC_CONTEXT_FAIL);
+            }
+        }
+        ret = avcodec_parameters_to_context(codecContext, codecParameters);
+        if (ret < 0) {
+            if (javaCallHelper) {
+                //javaCallHelper->onError(THREAD_CHILD, FFMPEG_CODEC_CONTEXT_PARAMETERS_FAIL);
+            }
+            return;
+        }
+        ret = avcodec_open2(codecContext, codec, 0);
+        if (ret) {
+            if (javaCallHelper) {
+                //javaCallHelper->onError(THREAD_CHILD, FFMPEG_OPEN_DECODER_FAIL);
+            }
+            return;
+        }
+        if (codecParameters->codec_type == AVMEDIA_TYPE_AUDIO) {
+            audio_time_base = formatContext->streams[i]->time_base;
+            audioChannel = new AudioChannel(i, codecContext, audio_time_base);
+        } else if (codecParameters->codec_type == AVMEDIA_TYPE_VIDEO) {
+            AVRational fram_rate = stream->avg_frame_rate;
+            int fps = av_q2d(fram_rate);
+            video_time_base = formatContext->streams[i]->time_base;
+            videoChannel = new VideoChannel(i, codecContext, fps, video_time_base);
+            videoChannel->setRenderCallback(renderCallback);
+        }
+    }//end for
     videoChannel->setRenderCallback(renderCallback);
 
-    if(ret < 0){
-        //todo
-        return;
-    }
-
-    ret = avcodec_open2(codecContext, dec, 0);
-
-    if(ret < 0){
-        //todo
-        return;
-    }
-
-
-
     javaCallHelper->onPrepared(THREAD_CHILD);
-
-
 };
 
 void FFmpegCore::prepare() {
@@ -132,8 +137,9 @@ void FFmpegCore::prepare() {
 
 void FFmpegCore::start() {
     isPlaying = 1;
+
+    videoChannel->setAudioChannel(audioChannel);
     if(videoChannel){
-        LOGE("FFmpegCore -> start")
         videoChannel->start();
     }
     if(audioChannel){
