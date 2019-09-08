@@ -45,6 +45,10 @@ public class FFmpegPlayer implements SurfaceHolder.Callback{
         native_prepare(path);
     }
 
+    public native void stopNative();
+
+    public native void releaseNative();
+
     public void onPrepare(){
         if(this.onPrepareListener != null){
             onPrepareListener.onPrepare();
@@ -59,6 +63,15 @@ public class FFmpegPlayer implements SurfaceHolder.Callback{
 
     public void setOnPrepareListener(OnPrepareListener onPrepareListener){
         this.onPrepareListener = onPrepareListener;
+    }
+
+    public void release() {
+        surfaceHolder.removeCallback(this);
+        releaseNative();
+    }
+
+    public void stop() {
+        stopNative();
     }
 
 

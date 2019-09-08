@@ -29,10 +29,41 @@ void *task_start(void* args){
     return 0;
 }
 
+void *task_stop(void* args){
+    FFmpegCore *fFmpegCore = static_cast<FFmpegCore *>(args);
+    fFmpegCore-> isPlaying = 0;
+
+    //wait for pid_prepare thread finish;
+    pthread_join(fFmpegCore -> pid_prepare, 0);
+    if(fFmpegCore -> formatContext){
+        avformat_close_input(& fFmpegCore -> formatContext);
+        avformat_free_context( fFmpegCore ->formatContext);
+        fFmpegCore ->formatContext = 0;
+    }
+
+
+    if( fFmpegCore ->videoChannel){
+        fFmpegCore ->videoChannel -> stop();
+    }
+    if( fFmpegCore ->audioChannel){
+        fFmpegCore ->audioChannel -> stop();
+    }
+    DELETE(fFmpegCore->videoChannel)
+    DELETE(fFmpegCore->audioChannel)
+    DELETE(fFmpegCore)
+    return 0;
+}
+
+
+
 void FFmpegCore::_start(){
     while(isPlaying){
         // memory leak point
         if(videoChannel -> packets.size() > 100){
+            av_usleep(10 * 1000);
+            continue;
+        }
+        if(audioChannel -> packets.size() > 100){
             av_usleep(10 * 1000);
             continue;
         }
@@ -49,8 +80,16 @@ void FFmpegCore::_start(){
             }
         } else if( ret == AVERROR_EOF){
             //LOGE("av_read_frame FINISH")
+            if(videoChannel->packets.empty() && videoChannel->frames.empty() &&
+            audioChannel->packets.empty() && audioChannel->frames.empty()){
+
+                av_packet_free(&avPacket);
+                break;
+            }
         } else {
             //LOGE("av_read_frame FAIL")
+            av_packet_free(&avPacket);
+            break;
         }
 
     }
@@ -148,6 +187,17 @@ void FFmpegCore::start() {
 
     pthread_create(&pid_start, 0,task_start ,this);
 }
+
+
+void FFmpegCore::stop() {
+
+    javaCallHelper = 0;
+
+
+    pthread_create(&pid_stop, 0, task_stop, this);
+
+}
+
 
 void FFmpegCore::setRenderCallback(RenderCallback renderCallback){
     this->renderCallback = renderCallback;

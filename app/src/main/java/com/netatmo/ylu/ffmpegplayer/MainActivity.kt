@@ -99,4 +99,14 @@ class MainActivity : AppCompatActivity() {
     private fun prepare(path: String){
         player.prepare(path)
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        player.release()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        player.stop();
+    }
 }

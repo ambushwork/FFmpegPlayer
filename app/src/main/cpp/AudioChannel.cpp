@@ -58,6 +58,32 @@ void AudioChannel::start() {
 
 
 void AudioChannel::stop() {
+    isPlaying = 0;
+    packets.setWork(0);
+    frames.setWork(0);
+    // set player stop state
+    if(bqPlayerPlay){
+        (*bqPlayerPlay) -> SetPlayState(bqPlayerPlay,SL_PLAYSTATE_STOPPED);
+    }
+
+    //release player
+    if(bqPlayerObject){
+        (*bqPlayerObject) -> Destroy(bqPlayerObject);
+        bqPlayerObject = 0;
+        bqPlayerBufferQueue = 0;
+    }
+    //destroy mix object
+    if(outputMixObject){
+        (*outputMixObject)->Destroy(outputMixObject);
+        outputMixObject = 0;
+    }
+
+    //destroy engine
+    if(engineObject){
+        (*engineObject)->Destroy(engineObject);
+        engineObject = 0;
+        engineInterface = 0;
+    }
 
 }
 

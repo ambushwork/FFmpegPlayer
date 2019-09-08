@@ -22,6 +22,7 @@ extern "C" {
 
 
 class FFmpegCore{
+    friend void *task_stop(void* args);
 public:
     FFmpegCore(JavaCallHelper *javaCallHelper, char* path);
 
@@ -37,6 +38,8 @@ public:
 
     void setRenderCallback(RenderCallback renderCallback);
 
+    void stop();
+
 private:
     JavaCallHelper *javaCallHelper = 0;
     AudioChannel *audioChannel =0;
@@ -44,6 +47,7 @@ private:
     char *dataSource;
     pthread_t pid_prepare;
     pthread_t pid_start;
+    pthread_t pid_stop;
     bool isPlaying;
     AVFormatContext* formatContext;
     RenderCallback renderCallback;

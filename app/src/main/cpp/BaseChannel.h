@@ -25,6 +25,11 @@ public:
     virtual ~BaseChannel(){
         packets.clear();
         frames.clear();
+        if(avCodecContext){
+            avcodec_close(avCodecContext);
+            avcodec_free_context(&avCodecContext);
+            avCodecContext = 0;
+        }
     }
 
     static void releaseAVPacket(AVPacket **packet){

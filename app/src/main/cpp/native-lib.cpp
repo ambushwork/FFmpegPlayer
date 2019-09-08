@@ -318,3 +318,24 @@ Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_setSufaceNative(JNIEnv *env, jobj
     pthread_mutex_unlock(&mutex);
 
 }
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_releaseNative(JNIEnv *env, jobject instance) {
+
+    pthread_mutex_lock(&mutex);
+
+    if(window){
+        ANativeWindow_release(window);
+        window = 0;
+    }
+    pthread_mutex_unlock(&mutex);
+    DELETE(fFmpegCore)
+
+}extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_stopNative(JNIEnv *env, jobject instance) {
+
+    if(fFmpegCore){
+        fFmpegCore->stop();
+    }
+}
