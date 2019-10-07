@@ -7,6 +7,7 @@
 #define FFMPEGPLAYER_AUDIOCHANNEL_H
 
 #include "BaseChannel.h"
+
 extern "C"{
 #include <libswresample/swresample.h>
 };
@@ -15,7 +16,7 @@ extern "C"{
 
 class AudioChannel : public BaseChannel{
 public:
-    AudioChannel(int id, AVCodecContext* formatContext,AVRational time_base);
+    AudioChannel(int id, AVCodecContext* formatContext,AVRational time_base, JavaCallHelper *javaCallHelper);
 
     virtual ~AudioChannel();
 
@@ -48,6 +49,7 @@ private:
     SwrContext *swrContext = 0;
 
     SLAndroidSimpleBufferQueueItf bqPlayerBufferQueue = 0;
+
 
 
 };

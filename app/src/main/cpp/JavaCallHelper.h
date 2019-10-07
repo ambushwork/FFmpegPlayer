@@ -18,7 +18,10 @@ private:
     JNIEnv *jniEnv;
     jobject  instance;
     jmethodID jmd_prepared;
+    jmethodID  jmd_onProgress;
 
 public:
     void onPrepared(int i);
+
+    void onProgress(int i,int progress);
 };

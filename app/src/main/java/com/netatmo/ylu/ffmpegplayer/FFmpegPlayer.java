@@ -11,6 +11,7 @@ public class FFmpegPlayer implements SurfaceHolder.Callback{
         System.loadLibrary("ffmpegplayer");
     }
     private SurfaceHolder surfaceHolder;
+    private OnProgressListener onProgressListener;
     public void setSurfaceView(SurfaceView surfaceView) {
         if (null != this.surfaceHolder) {
             this.surfaceHolder.removeCallback(this);
@@ -26,6 +27,12 @@ public class FFmpegPlayer implements SurfaceHolder.Callback{
     public void start2(){
         native_start2();
     }
+
+    public int getDuration(){
+        return getDurationNative();
+    }
+
+    public native int  getDurationNative();
 
     public void sound(String input, String output){
         native_sound(input, output);
@@ -61,8 +68,18 @@ public class FFmpegPlayer implements SurfaceHolder.Callback{
         }
     }
 
+    public void onProgress(int progress){
+        if(onProgressListener != null){
+            onProgressListener.onProgress(progress);
+        }
+    }
+
     public void setOnPrepareListener(OnPrepareListener onPrepareListener){
         this.onPrepareListener = onPrepareListener;
+    }
+
+    public void setOnProgressListener(OnProgressListener onProgressListener){
+        this.onProgressListener = onProgressListener;
     }
 
     public void release() {
@@ -74,10 +91,19 @@ public class FFmpegPlayer implements SurfaceHolder.Callback{
         stopNative();
     }
 
+    public void seek(int playProgress) {
+        seekToNative(playProgress);
+    }
+
+    public native void seekToNative(int playProgress);
 
     public interface OnPrepareListener{
         void onPrepare();
         void onError(int errorCode);
+    }
+
+    public interface OnProgressListener{
+        void onProgress(int progress);
     }
 
 

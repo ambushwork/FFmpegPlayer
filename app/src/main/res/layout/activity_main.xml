@@ -52,5 +52,11 @@
             android:id="@+id/button_prepare"
             android:text="Prepare"/>
 
+    <SeekBar android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:id="@+id/seek_bar"
+    android:max="100"
+    android:visibility="gone"/>
+
 
 </LinearLayout>

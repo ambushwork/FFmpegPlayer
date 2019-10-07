@@ -28,7 +28,8 @@ void dropAVFrame(queue<AVFrame *> &q){
 }
 
 
-VideoChannel::VideoChannel(int id,AVCodecContext* avCodecContext,int fps,AVRational time_base) :BaseChannel(id, avCodecContext, time_base){
+VideoChannel::VideoChannel(int id,AVCodecContext* avCodecContext,int fps,AVRational time_base, JavaCallHelper *javaCallHelper)
+:BaseChannel(id, avCodecContext, time_base, javaCallHelper){
     this->fps = fps;
     packets.setSyncHandler(dropAVPacket);
     frames.setSyncHandler(dropAVFrame);
@@ -63,6 +64,7 @@ void VideoChannel::start(){
 
 void VideoChannel::stop(){
     isPlaying = 0;
+    javaCallHelper = 0;
     packets.setWork(0);
     frames.setWork(0);
     pthread_join(pid_video_decode, 0);
@@ -138,6 +140,9 @@ void VideoChannel::video_play() {
         //av_usleep(real_delay * 1000000);
 
         double video_time = frame->best_effort_timestamp * av_q2d(time_base);
+        if(javaCallHelper){
+            javaCallHelper->onProgress(THREAD_CHILD, video_time);
+        }
         if(!audioChannel){
             av_usleep(real_delay * 1000000);
         } else {

@@ -12,12 +12,15 @@ extern "C" {
 };
 
 #include "safe_queue.h"
+#include "JavaCallHelper.h"
 
 class BaseChannel{
 public:
-    BaseChannel(int id,  AVCodecContext* formatContext,AVRational time_base):id(id),
+    BaseChannel(int id,  AVCodecContext* formatContext,AVRational time_base,
+                JavaCallHelper *javaCallHelper):id(id),
     avCodecContext(formatContext),
-    time_base(time_base){
+    time_base(time_base),
+    javaCallHelper(javaCallHelper){
         packets.setReleaseCallback(releaseAVPacket);
         frames.setReleaseCallback(releaseAVFrame);
     }
@@ -55,6 +58,8 @@ public:
     bool isPlaying = 0;
     AVCodecContext* avCodecContext = 0;
     AVRational time_base;
+
+    JavaCallHelper *javaCallHelper = 0;
 };
 
 

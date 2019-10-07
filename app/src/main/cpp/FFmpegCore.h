@@ -6,7 +6,6 @@
 #define FFMPEGPLAYER_FFMPEGCORE_H
 
 
-#include "JavaCallHelper.h"
 #include "AudioChannel.h"
 #include "VideoChannel.h"
 #include <cstring>
@@ -40,6 +39,10 @@ public:
 
     void stop();
 
+    int getDuration() const;
+
+    void seekTo(jint i);
+
 private:
     JavaCallHelper *javaCallHelper = 0;
     AudioChannel *audioChannel =0;
@@ -51,6 +54,8 @@ private:
     bool isPlaying;
     AVFormatContext* formatContext;
     RenderCallback renderCallback;
+    int duration;
+    pthread_mutex_t seekMutex;
 };
 
 #endif //FFMPEGPLAYER_FFMPEGCORE_H

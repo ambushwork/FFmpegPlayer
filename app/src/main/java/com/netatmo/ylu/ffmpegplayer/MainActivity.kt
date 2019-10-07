@@ -11,12 +11,15 @@ import android.view.SurfaceView
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
 import android.support.v4.content.FileProvider
+import android.view.View
 import android.view.View.VISIBLE
+import android.widget.SeekBar
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var player: FFmpegPlayer
     private var path : String? = null
+    private val isTouch : Boolean ? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,10 +27,24 @@ class MainActivity : AppCompatActivity() {
 
         player = FFmpegPlayer()
         player.setSurfaceView(surfaceView)
+        player.setOnProgressListener {
+            val duration = player.duration;
+            if(duration != 0){
+                runOnUiThread{
+                    seek_bar.progress = it/duration * 100
+                }
+            }
+        }
         player.setOnPrepareListener(object : FFmpegPlayer.OnPrepareListener {
             override fun onPrepare() {
                 runOnUiThread{
                     button_play.visibility = VISIBLE
+                }
+                val duration = player.duration;
+                if(duration != 0){
+                    runOnUiThread{
+                        seek_bar.visibility = VISIBLE
+                    }
                 }
             }
 
@@ -57,6 +74,24 @@ class MainActivity : AppCompatActivity() {
                 prepare(it)
             }
         }
+        seek_bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener{
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                seekBar.progress = progress
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                val progress = seek_bar.progress
+                val duration = player .duration
+                val playProgress= progress * duration /100
+                player.seek(playProgress)
+
+            }
+
+        })
     }
 
     private fun chooseFile() {
@@ -109,4 +144,6 @@ class MainActivity : AppCompatActivity() {
         super.onStop()
         player.stop();
     }
+
+
 }

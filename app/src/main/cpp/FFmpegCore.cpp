@@ -10,11 +10,13 @@ FFmpegCore::FFmpegCore(JavaCallHelper *javaCallHelper, char* path) {
     //C string end with '\0', such as "path\0", so we need to plus 1.
     this->dataSource = new char[strlen(path)+1];
     strcpy(this->dataSource, path);
+    pthread_mutex_init(&seekMutex, 0);
 }
 
 FFmpegCore::~FFmpegCore() {
     DELETE(dataSource);
     DELETE(javaCallHelper);
+    pthread_mutex_destroy(&seekMutex);
 }
 
 void *task_prepare(void* args){
@@ -68,7 +70,9 @@ void FFmpegCore::_start(){
             continue;
         }
         AVPacket *avPacket =av_packet_alloc();
+        pthread_mutex_lock(&seekMutex);
         int ret = av_read_frame(formatContext, avPacket);
+        pthread_mutex_unlock(&seekMutex);
         if(!ret){
             //Thread safe queue
             //LOGE("av_read_frame OK")
@@ -117,6 +121,8 @@ void FFmpegCore::_prepare(){
         //todo
         return;
     }
+
+    duration = formatContext->duration / AV_TIME_BASE;
     int video_stream_index= -1;
     int audio_stream_index= -1;
     int fps = -1;
@@ -155,12 +161,12 @@ void FFmpegCore::_prepare(){
         }
         if (codecParameters->codec_type == AVMEDIA_TYPE_AUDIO) {
             audio_time_base = formatContext->streams[i]->time_base;
-            audioChannel = new AudioChannel(i, codecContext, audio_time_base);
+            audioChannel = new AudioChannel(i, codecContext, audio_time_base, javaCallHelper);
         } else if (codecParameters->codec_type == AVMEDIA_TYPE_VIDEO) {
             AVRational fram_rate = stream->avg_frame_rate;
             int fps = av_q2d(fram_rate);
             video_time_base = formatContext->streams[i]->time_base;
-            videoChannel = new VideoChannel(i, codecContext, fps, video_time_base);
+            videoChannel = new VideoChannel(i, codecContext, fps, video_time_base, javaCallHelper);
             videoChannel->setRenderCallback(renderCallback);
         }
     }//end for
@@ -198,7 +204,50 @@ void FFmpegCore::stop() {
 
 }
 
+int FFmpegCore::getDuration() const{
+    return duration;
+}
 
 void FFmpegCore::setRenderCallback(RenderCallback renderCallback){
     this->renderCallback = renderCallback;
+}
+
+void FFmpegCore::seekTo(int playProgress) {
+    if(playProgress < 0 || playProgress > duration){
+        LOGE("seek to invalid argument")
+        return;
+    }
+    if(!formatContext || !audioChannel && !videoChannel){
+        return;
+    }
+    pthread_mutex_lock(&seekMutex);
+    int ret = av_seek_frame(formatContext, -1, playProgress * AV_TIME_BASE, AVSEEK_FLAG_BACKWARD);
+    if(ret < 0){
+        //call error
+    }
+
+    //clean and restart
+    if(audioChannel){
+        audioChannel->packets.setWork(0);
+        audioChannel->frames.setWork(0);
+        audioChannel->packets.clear();
+        audioChannel->frames.clear();
+
+        audioChannel->packets.setWork(1);
+        audioChannel->frames.setWork(1);
+    }
+
+    if(videoChannel){
+        videoChannel->packets.setWork(0);
+        videoChannel->frames.setWork(0);
+        videoChannel->packets.clear();
+        videoChannel->frames.clear();
+
+        videoChannel->packets.setWork(1);
+        videoChannel->frames.setWork(1);
+    }
+    pthread_mutex_unlock(&seekMutex);
+
+
+    return ;
 }

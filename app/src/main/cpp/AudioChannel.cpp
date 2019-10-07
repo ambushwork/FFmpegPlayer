@@ -5,7 +5,7 @@
 #include "AudioChannel.h"
 #include "macro.h"
 
-AudioChannel::AudioChannel(int id,AVCodecContext* codecContext,AVRational time_base) : BaseChannel(id, codecContext, time_base) {
+AudioChannel::AudioChannel(int id,AVCodecContext* codecContext,AVRational time_base, JavaCallHelper *javaCallHelper) : BaseChannel(id, codecContext, time_base, javaCallHelper) {
     out_channels = av_get_channel_layout_nb_channels(AV_CH_LAYOUT_STEREO);
     out_sampleSize = av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
     out_sampleRate = 44100;
@@ -59,6 +59,7 @@ void AudioChannel::start() {
 
 void AudioChannel::stop() {
     isPlaying = 0;
+    javaCallHelper = 0;
     packets.setWork(0);
     frames.setWork(0);
     // set player stop state
@@ -118,7 +119,6 @@ void AudioChannel::audio_decode() {
         while(isPlaying && frames.size() > 100){
             av_usleep(10 *1000);
         }
-        LOGE("video_decode push frames OK")
         frames.push(frame);
     }
     releaseAVPacket(&packet);
@@ -258,7 +258,6 @@ int AudioChannel::getPCM() {
             //取数据包失败
             continue;
         }
-        LOGE("音频播放中");
         //pcm数据在 frame中
         //这里获得的解码后pcm格式的音频原始数据，有可能与创建的播放器中设置的pcm格式不一样
         //重采样？example:resample
@@ -285,7 +284,10 @@ int AudioChannel::getPCM() {
 
         //get audio time
         audio_time = frame->best_effort_timestamp * av_q2d(time_base);
-
+        if(javaCallHelper){
+            LOGE("AUDIO_TIME %d", audio_time)
+            javaCallHelper->onProgress(THREAD_CHILD, audio_time);
+        }
         // 获取swr_convert转换后 out_samples个 *2 （16位）*2（双声道）
         pcm_data_size = out_samples * out_sampleSize * out_channels;
         break;

@@ -16,6 +16,8 @@ JavaCallHelper::JavaCallHelper(JavaVM *javaVM_, JNIEnv *env_, jobject instance_)
     //Get method id by class instance, class name and class signature
     //to get class signature, go into the class directory and use "javap -s <classname>"
     jmd_prepared  = env_->GetMethodID(clazz,"onPrepare","()V");
+    jmd_onProgress = env_->GetMethodID(clazz,"onProgress","(I)V");
+
 }
 
 JavaCallHelper::~JavaCallHelper() {
@@ -31,6 +33,18 @@ void JavaCallHelper::onPrepared(int threadMode) {
         JNIEnv *env_child;
         javaVM->AttachCurrentThread( &env_child, 0);
         env_child->CallVoidMethod(instance,jmd_prepared);
+        javaVM->DetachCurrentThread();
+    }
+}
+
+
+void JavaCallHelper::onProgress(int threadMode, int progress){
+    if(threadMode == THREAD_MAIN){
+        jniEnv->CallVoidMethod(instance,jmd_onProgress);
+    } else {
+        JNIEnv *env_child;
+        javaVM->AttachCurrentThread( &env_child, 0);
+        env_child->CallVoidMethod(instance,jmd_onProgress, progress);
         javaVM->DetachCurrentThread();
     }
 }

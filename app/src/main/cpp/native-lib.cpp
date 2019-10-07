@@ -265,7 +265,6 @@ void renderFrame(uint8_t *src_data, int lineSize, int width, int height){
         pthread_mutex_unlock(&mutex);
         return;
     }
-    LOGE("ANativeWindow_lock OK");
     //assign data to buffer
     uint8_t  *dst_data = static_cast<uint8_t  *>(outBuffer.bits);
     // The number of *pixels* that a line in the buffer takes in
@@ -274,7 +273,6 @@ void renderFrame(uint8_t *src_data, int lineSize, int width, int height){
     int dst_lineSize = outBuffer.stride * 4;
 
     for(int i = 0; i<outBuffer.height; ++i){
-        LOGE("renderFrame loop")
         memcpy(dst_data + i*dst_lineSize, src_data + i*lineSize, dst_lineSize);
     }
     ANativeWindow_unlockAndPost(window);
@@ -338,4 +336,22 @@ Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_stopNative(JNIEnv *env, jobject i
     if(fFmpegCore){
         fFmpegCore->stop();
     }
+}extern "C"
+JNIEXPORT jint JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_getDurationNative(JNIEnv *env, jobject instance) {
+
+
+    if(fFmpegCore){
+        return fFmpegCore->getDuration();
+    }
+    return 0;
+
+}extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_seekToNative(JNIEnv *env, jobject instance, jint playProgress) {
+
+    if(fFmpegCore){
+        return fFmpegCore->seekTo(playProgress);
+    }
+
 }

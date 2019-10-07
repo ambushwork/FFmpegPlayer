@@ -16,7 +16,7 @@ extern "C"{
 typedef void (*RenderCallback) (uint8_t *, int, int, int);
 class VideoChannel : public BaseChannel{
 public:
-    VideoChannel(int id, AVCodecContext* avCodecContext, int fps,AVRational time_base);
+    VideoChannel(int id, AVCodecContext* avCodecContext, int fps,AVRational time_base,JavaCallHelper *javaCallHelper);
 
     virtual ~VideoChannel();
 
@@ -38,6 +38,7 @@ private:
     RenderCallback  renderCallback;
     int fps;
     AudioChannel *audioChannel;
+
 };
 
 #endif //FFMPEGPLAYER_VIDEOCHANNEL_H
