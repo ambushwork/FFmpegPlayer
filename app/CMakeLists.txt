@@ -7,11 +7,14 @@ cmake_minimum_required(VERSION 3.4.1)
 file(GLOB SOURCE src/main/cpp/*.cpp)
 #aux_source_directory()
 
+add_subdirectory(src/main/cpp/librtmp)
+
 add_library(
              ffmpegplayer
              SHARED
              ${SOURCE})
-include_directories(src/main/cpp/include)
+include_directories(src/main/cpp/include
+        librtmp)
 
 set(my_lib_path ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI})
 
@@ -22,6 +25,7 @@ find_library(
               log )
 target_link_libraries( # Specifies the target library.
                 ffmpegplayer
+                rtmp
                 -Wl,--start-group
                 avformat avcodec avutil swresample swscale avfilter
                 -Wl,--end-group
