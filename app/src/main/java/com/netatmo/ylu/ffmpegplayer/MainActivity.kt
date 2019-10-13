@@ -2,6 +2,7 @@ package com.netatmo.ylu.ffmpegplayer
 
 import android.app.Activity
 import android.content.Intent
+import android.hardware.Camera
 import android.net.Uri
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -20,15 +21,24 @@ class MainActivity : AppCompatActivity() {
     private lateinit var player: FFmpegPlayer
     private var path : String? = null
     private val isTouch : Boolean ? = null
+    private lateinit var cameraHelper : CameraHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         player = FFmpegPlayer()
-        player.setSurfaceView(surfaceView)
+
+        cameraHelper = CameraHelper(this, Camera.CameraInfo.CAMERA_FACING_BACK, 480, 800)
+        cameraHelper.setOnChangedSizeListener { w, h ->
+            //do nothing
+        }
+        cameraHelper.setPreviewCallback { data, camera ->
+
+        }
+        cameraHelper.setPreviewDisplay(surfaceView.holder)
+        //player.setSurfaceView(surfaceView)
         player.setOnProgressListener {
-            val duration = player.duration;
+            val duration = player.duration
             if(duration != 0){
                 runOnUiThread{
                     seek_bar.progress = it/duration * 100
@@ -92,6 +102,10 @@ class MainActivity : AppCompatActivity() {
             }
 
         })
+        btn_start_live.setOnClickListener {
+
+        }
+        text_info.text = player.stringFromJNI()
     }
 
     private fun chooseFile() {
@@ -142,7 +156,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        player.stop();
+        player.stop()
     }
 
 

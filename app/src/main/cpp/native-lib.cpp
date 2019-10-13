@@ -4,6 +4,11 @@
 #include <zconf.h>
 #include <android/log.h>
 #include "FFmpegCore.h"
+#include "librtmp/rtmp.h"
+extern "C"{
+  #include "librtmp/rtmp.h"
+    #include "x264.h"
+}
 
 #define MAX_AUDIO_FRME_SIZE 48000 *4
 extern "C" {
@@ -15,11 +20,14 @@ extern "C" {
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_netatmo_ylu_ffmpegplayer_MainActivity_stringFromJNI(
+Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_stringFromJNI(
         JNIEnv* env,
         jobject /* this */) {
     std::string hello = "Hello from C++";
-    return env->NewStringUTF(av_version_info());
+    char version[50];
+    sprintf(version, "librtmp version :%d", RTMP_LibVersion());
+    x264_picture_t *picture = new x264_picture_t;
+    return env->NewStringUTF(version);
 }
 
 
