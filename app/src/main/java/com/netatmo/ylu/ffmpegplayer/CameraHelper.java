@@ -146,6 +146,7 @@ public class CameraHelper implements SurfaceHolder.Callback, Camera.PreviewCallb
     }
 
 
+    //data format nv21
     @Override
     public void onPreviewFrame(byte[] data, Camera camera) {
         switch (mRotation) {

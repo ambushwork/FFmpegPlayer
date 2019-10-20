@@ -5,6 +5,8 @@
 #include <android/log.h>
 #include "FFmpegCore.h"
 #include "librtmp/rtmp.h"
+#include "VideoPushChannel.h"
+
 extern "C"{
   #include "librtmp/rtmp.h"
     #include "x264.h"
@@ -361,5 +363,40 @@ Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_seekToNative(JNIEnv *env, jobject
     if(fFmpegCore){
         return fFmpegCore->seekTo(playProgress);
     }
+
+}
+
+VideoPushChannel *videoPushChannel;
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1init(JNIEnv *env, jobject instance) {
+
+    //encoder
+
+    videoPushChannel = new VideoPushChannel();
+
+
+
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1start_1live(JNIEnv *env, jobject instance, jstring path_) {
+    const char *path = env->GetStringUTFChars(path_, 0);
+    char *url = new char(strlen(path) + 1);
+    strcpy(url, path);
+
+    //create thread to push live
+    videoPushChannel->startLive(url);
+
+    env->ReleaseStringUTFChars(path_, path);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1stop(JNIEnv *env, jobject instance) {
+
+    videoPushChannel->stopLive();
 
 }

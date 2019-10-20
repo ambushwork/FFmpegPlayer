@@ -22,20 +22,20 @@ class MainActivity : AppCompatActivity() {
     private var path : String? = null
     private val isTouch : Boolean ? = null
     private lateinit var cameraHelper : CameraHelper
+    private lateinit var pusher: PushManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         player = FFmpegPlayer()
-
-        cameraHelper = CameraHelper(this, Camera.CameraInfo.CAMERA_FACING_BACK, 480, 800)
+        pusher = PushManager(this, Camera.CameraInfo.CAMERA_FACING_BACK, 480, 800, 480000)
         cameraHelper.setOnChangedSizeListener { w, h ->
             //do nothing
         }
         cameraHelper.setPreviewCallback { data, camera ->
 
         }
-        cameraHelper.setPreviewDisplay(surfaceView.holder)
+        pusher.setPreviewDisplay(surfaceView.holder)
         //player.setSurfaceView(surfaceView)
         player.setOnProgressListener {
             val duration = player.duration
@@ -103,7 +103,7 @@ class MainActivity : AppCompatActivity() {
 
         })
         btn_start_live.setOnClickListener {
-
+            pusher.startLive("rtmp://59.111.90.142/myapp/")
         }
         text_info.text = player.stringFromJNI()
     }
