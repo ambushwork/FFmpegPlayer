@@ -6,11 +6,9 @@
 #include "FFmpegCore.h"
 #include "librtmp/rtmp.h"
 #include "VideoPushChannel.h"
+#include "librtmp/rtmp.h"
+#include "x264.h"
 
-extern "C"{
-  #include "librtmp/rtmp.h"
-    #include "x264.h"
-}
 
 #define MAX_AUDIO_FRME_SIZE 48000 *4
 extern "C" {
@@ -398,5 +396,29 @@ JNIEXPORT void JNICALL
 Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1stop(JNIEnv *env, jobject instance) {
 
     videoPushChannel->stopLive();
+
+}extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1pushVideo(JNIEnv *env, jobject instance, jbyteArray data_) {
+    jbyte *data = env->GetByteArrayElements(data_, NULL);
+
+    if(!videoPushChannel || !videoPushChannel->isConnected){
+
+    }
+
+    videoPushChannel->encodeData(data);
+    jbyte *data1= env->GetByteArrayElements(data_,NULL);
+    env->ReleaseByteArrayElements(data_,data1, 0);
+}
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1initVideoEncoder(JNIEnv *env, jobject instance, jint w, jint h,
+                                                                       jint fps, jint bitrate) {
+
+    if(videoPushChannel){
+        videoPushChannel->initVideoEncoder(w,h,fps, bitrate);
+    }
 
 }

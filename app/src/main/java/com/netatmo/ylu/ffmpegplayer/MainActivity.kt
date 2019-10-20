@@ -28,7 +28,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         player = FFmpegPlayer()
-        pusher = PushManager(this, Camera.CameraInfo.CAMERA_FACING_BACK, 480, 800, 480000)
+        pusher = PushManager(this, Camera.CameraInfo.CAMERA_FACING_BACK, 480, 800,25, 80000)
+        cameraHelper = CameraHelper(this, Camera.CameraInfo.CAMERA_FACING_BACK, 640, 480)
         cameraHelper.setOnChangedSizeListener { w, h ->
             //do nothing
         }
@@ -103,6 +104,7 @@ class MainActivity : AppCompatActivity() {
 
         })
         btn_start_live.setOnClickListener {
+            //http://59.111.90.142:8080/stat to check state
             pusher.startLive("rtmp://59.111.90.142/myapp/")
         }
         text_info.text = player.stringFromJNI()

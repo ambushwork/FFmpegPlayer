@@ -7,8 +7,8 @@ import org.jetbrains.annotations.Nullable;
 
 public class PushManager {
     private VideoChannel videoChannel;
-    public PushManager(Activity activity,int cameraId, int width, int height, int bitrate){
-        videoChannel = new VideoChannel(activity, cameraId, width,height, bitrate);
+    public PushManager(Activity activity,int cameraId, int width, int height, int fps, int bitrate){
+        videoChannel = new VideoChannel(this,activity, cameraId, width,height, fps, bitrate);
         native_init();
     }
 
@@ -32,4 +32,8 @@ public class PushManager {
     public native void native_init();
 
     public native void native_start_live(String path);
+
+    public native void native_pushVideo(byte[] data);
+
+    public native void native_initVideoEncoder(int w, int h, int fps, int bitrate);
 }
