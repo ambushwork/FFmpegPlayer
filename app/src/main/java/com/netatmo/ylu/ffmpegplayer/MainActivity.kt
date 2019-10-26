@@ -105,6 +105,7 @@ class MainActivity : AppCompatActivity() {
         })
         btn_start_live.setOnClickListener {
             //http://59.111.90.142:8080/stat to check state
+            //ffplay "rtmp://59.111.90.142/myapp live=1" to watch live
             pusher.startLive("rtmp://59.111.90.142/myapp/")
         }
         text_info.text = player.stringFromJNI()

@@ -16,6 +16,10 @@ void *task_start_live(void *args) {
 }
 
 void VideoPushChannel::startLive(char* url){
+    if(this->isPlaying){
+        return;
+    }
+    this->isPlaying = 1;
     this->url = url;
     pthread_create(&pid_start,0, task_start_live, this);
 }
@@ -37,18 +41,24 @@ void VideoPushChannel::_task_start(){
             break;
         }
 
+        LOGE("Rtmp SetupURL OK! %s",url)
+
         RTMP_EnableWrite(rtmp);
 
+        LOGE("RTMP_EnableWrite OK!")
         ret =  RTMP_Connect(rtmp,0);
         if(!ret){
-            LOGE("Rtmp RTMP_Connect failed!")
+            LOGE("Rtmp RTMP_Connect failed! %d", ret)
             break;
         }
+
+        LOGE("RTMP_Connect OK!")
         ret= RTMP_ConnectStream(rtmp, 0);
         if(!ret){
-            LOGE("Rtmp RTMP_ConnectStream failed!")
+            LOGE("Rtmp RTMP_ConnectStream failed! %d", ret)
             break;
         }
+        LOGE("RTMP_ConnectStream OK!")
 
 
         //ready to push stream to server
@@ -61,6 +71,7 @@ void VideoPushChannel::_task_start(){
         RTMPPacket *packet = 0;
         while(isConnected){
             rtmpPackets.pop(packet);
+            LOGE("Pop up a rtmp packet")
             if(!isConnected){
                 break;
             }
@@ -74,11 +85,13 @@ void VideoPushChannel::_task_start(){
             }
         }
 
-        releasePacket(&packet);
+        //releasePacket(&packet);
 
     }while (0);
     isPlaying = 0;
     isConnected = 0;
+/*    rtmpPackets.setWork(0);
+    rtmpPackets.clear();*/
     if(rtmp){
         RTMP_Close(rtmp);
         RTMP_Free(rtmp);
@@ -106,6 +119,17 @@ void VideoPushChannel::initVideoEncoder(int w, int h, int fps, int bitrate) {
 
     y_len = w * h;
     uv_len = y_len / 4;
+
+ /*   if(videoEncoder){
+        *//*x264_encoder_close(videoEncoder);
+        videoEncoder = 0;*//*
+    }
+
+    if(pic_in){
+        x264_picture_clean(pic_in);
+        DELETE(pic_in)
+    }*/
+
     x264_param_t param;
     x264_param_default_preset(&param, "ultrafast", "zerolatency");
 
@@ -128,7 +152,7 @@ void VideoPushChannel::initVideoEncoder(int w, int h, int fps, int bitrate) {
 
     //max bitrate
     param.rc.i_vbv_max_bitrate = bitrate / 1000 *1.2;
-
+    param.rc.i_vbv_buffer_size = bitrate / 1000;
     //bitrate control by fps instead of timebase and timestamp
     param.b_vfr_input = 0;
 
@@ -227,8 +251,6 @@ void VideoPushChannel::sendSpsPps(uint8_t *sps, uint8_t *pps, int sps_len, int p
     packet -> m_body[i++] = 0xFF;
     packet -> m_body[i++] = 0xE1;
 
-    packet -> m_body[i++] = 0xE1;
-
     packet -> m_body[i++] = (sps_len >> 8);
     packet -> m_body[i++] = (sps_len & 0xFF);
 
@@ -252,7 +274,11 @@ void VideoPushChannel::sendSpsPps(uint8_t *sps, uint8_t *pps, int sps_len, int p
     packet->m_headerType = RTMP_PACKET_SIZE_MEDIUM;
 
     //put data into queue
-    rtmpPackets.push(packet);
+    if (packet) {
+        LOGE("Push SpsPPs")
+        packet->m_nTimeStamp = RTMP_GetTime() - start_time;
+        rtmpPackets.push(packet);
+    }
 
 
 }
@@ -261,16 +287,17 @@ void VideoPushChannel::sendFrame(int type, int payload, uint8_t *p_payload) {
     //remove start code
     if(p_payload[2] = 0x00){
         p_payload +=4;
+        payload -= 4;
     } else if(p_payload[2] = 0x01){
         p_payload +=3;
+        payload -= 3;
     }
 
     RTMPPacket *packet = new RTMPPacket;
     int body_size = 5 + 4 + payload;
     RTMPPacket_Alloc(packet, body_size);
 
-    int i = 0;
-    packet -> m_body[0] = 0x17;
+    packet -> m_body[0] = 0x27;
     if(type == NAL_SLICE_IDR){
         packet ->m_body[0] = 0x17;
     }
@@ -292,15 +319,14 @@ void VideoPushChannel::sendFrame(int type, int payload, uint8_t *p_payload) {
     packet->m_packetType = RTMP_PACKET_TYPE_VIDEO;
     packet->m_nBodySize = body_size;
     packet->m_nChannel = 10;
-    packet->m_nTimeStamp = -1;
+    //packet->m_nTimeStamp = -1;
     packet->m_hasAbsTimestamp = 0;
     packet->m_headerType = RTMP_PACKET_SIZE_LARGE;
 
 
-    if(packet ->m_nTimeStamp == -1){
-        packet->m_nTimeStamp = RTMP_GetTime() - start_time;
-    }
+    packet->m_nTimeStamp = RTMP_GetTime() - start_time;
     //put data into queue
+    LOGE("Push frame")
     rtmpPackets.push(packet);
 
 }

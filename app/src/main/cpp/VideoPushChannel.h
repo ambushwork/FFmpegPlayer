@@ -8,6 +8,7 @@
 #include <x264.h>
 #include "librtmp/rtmp.h"
 #include "safe_queue.h"
+#include "macro.h"
 
 class VideoPushChannel {
 public:
@@ -18,6 +19,14 @@ public:
 
     ~VideoPushChannel(){
         pthread_mutex_destroy(&mutex);
+        if(videoEncoder){
+            x264_encoder_close(videoEncoder);
+            videoEncoder = 0;
+        }
+        if(pic_in){
+            x264_picture_clean(pic_in);
+            DELETE(pic_in);
+        }
     }
     SafeQueue<RTMPPacket *> rtmpPackets;
     pthread_t pid_start;

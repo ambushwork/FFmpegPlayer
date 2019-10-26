@@ -403,7 +403,7 @@ Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1pushVideo(JNIEnv *env, job
     jbyte *data = env->GetByteArrayElements(data_, NULL);
 
     if(!videoPushChannel || !videoPushChannel->isConnected){
-
+        return;
     }
 
     videoPushChannel->encodeData(data);
