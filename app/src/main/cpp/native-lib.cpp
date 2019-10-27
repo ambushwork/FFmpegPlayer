@@ -8,6 +8,7 @@
 #include "VideoPushChannel.h"
 #include "librtmp/rtmp.h"
 #include "x264.h"
+#include "AudioPushChannel.h"
 
 
 #define MAX_AUDIO_FRME_SIZE 48000 *4
@@ -365,15 +366,18 @@ Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_seekToNative(JNIEnv *env, jobject
 }
 
 VideoPushChannel *videoPushChannel;
+AudioPushChannel *audioPushChannel;
+BasePushChannel *basePushChannel;
+
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1init(JNIEnv *env, jobject instance) {
 
     //encoder
-
-    videoPushChannel = new VideoPushChannel();
-
+    basePushChannel = new BasePushChannel;
+    videoPushChannel = new VideoPushChannel(basePushChannel);
+    audioPushChannel = new AudioPushChannel(basePushChannel);
 
 
 }
@@ -386,7 +390,7 @@ Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1start_1live(JNIEnv *env, j
     strcpy(url, path);
 
     //create thread to push live
-    videoPushChannel->startLive(url);
+    basePushChannel->startLive(url);
 
     env->ReleaseStringUTFChars(path_, path);
 }
@@ -395,14 +399,14 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1stop(JNIEnv *env, jobject instance) {
 
-    videoPushChannel->stopLive();
+    basePushChannel->stopLive();
 
 }extern "C"
 JNIEXPORT void JNICALL
 Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1pushVideo(JNIEnv *env, jobject instance, jbyteArray data_) {
     jbyte *data = env->GetByteArrayElements(data_, NULL);
 
-    if(!videoPushChannel || !videoPushChannel->isConnected){
+    if(!videoPushChannel || !basePushChannel->isConnected){
         return;
     }
 
@@ -421,4 +425,37 @@ Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1initVideoEncoder(JNIEnv *e
         videoPushChannel->initVideoEncoder(w,h,fps, bitrate);
     }
 
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1initAudioEncoder(JNIEnv *env, jobject thiz,
+                                                                       jint sample_rate,
+                                                                       jint num_channels) {
+    if(audioPushChannel){
+        audioPushChannel->initAudioEncoder(sample_rate, num_channels);
+    }
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_getInputSamples(JNIEnv *env, jobject thiz) {
+    if (audioPushChannel) {
+        return audioPushChannel->getInputSamples();
+    }
+    return -1;
+}
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1pushAudio(JNIEnv *env, jobject thiz,
+                                                                jbyteArray bytes) {
+    if(!audioPushChannel|| !basePushChannel->isConnected){
+        return;
+    }
+
+    jbyte *data1= env->GetByteArrayElements(bytes,NULL);
+    audioPushChannel->encodeData(data1);
+    env->ReleaseByteArrayElements(bytes,data1, 0);
 }
