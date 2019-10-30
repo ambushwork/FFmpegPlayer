@@ -81,7 +81,7 @@ void BasePushChannel::_task_start(){
             }
         }
 
-        //releasePacket(&packet);
+        releasePacket(&packet);
 
     }while (0);
     isPlaying = 0;

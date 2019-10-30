@@ -386,7 +386,7 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1start_1live(JNIEnv *env, jobject instance, jstring path_) {
     const char *path = env->GetStringUTFChars(path_, 0);
-    char *url = new char(strlen(path) + 1);
+    char *url = new char[strlen(path) + 1];
     strcpy(url, path);
 
     //create thread to push live
@@ -415,7 +415,6 @@ Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1pushVideo(JNIEnv *env, job
     env->ReleaseByteArrayElements(data_,data1, 0);
 }
 
-
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1initVideoEncoder(JNIEnv *env, jobject instance, jint w, jint h,
@@ -424,7 +423,6 @@ Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1initVideoEncoder(JNIEnv *e
     if(videoPushChannel){
         videoPushChannel->initVideoEncoder(w,h,fps, bitrate);
     }
-
 }
 
 extern "C"
@@ -445,7 +443,6 @@ Java_com_netatmo_ylu_ffmpegplayer_PushManager_getInputSamples(JNIEnv *env, jobje
     }
     return -1;
 }
-
 
 extern "C"
 JNIEXPORT void JNICALL
