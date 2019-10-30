@@ -2,6 +2,7 @@ package com.netatmo.ylu.ffmpegplayer
 
 import android.app.Activity
 import android.content.Intent
+import android.hardware.Camera
 import android.net.Uri
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -20,15 +21,25 @@ class MainActivity : AppCompatActivity() {
     private lateinit var player: FFmpegPlayer
     private var path : String? = null
     private val isTouch : Boolean ? = null
+    private lateinit var cameraHelper : CameraHelper
+    private lateinit var pusher: PushManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         player = FFmpegPlayer()
-        player.setSurfaceView(surfaceView)
+        pusher = PushManager(this, Camera.CameraInfo.CAMERA_FACING_BACK, 480, 800,25, 80000)
+        cameraHelper = CameraHelper(this, Camera.CameraInfo.CAMERA_FACING_BACK, 640, 480)
+        cameraHelper.setOnChangedSizeListener { w, h ->
+            //do nothing
+        }
+        cameraHelper.setPreviewCallback { data, camera ->
+
+        }
+        pusher.setPreviewDisplay(surfaceView.holder)
+        //player.setSurfaceView(surfaceView)
         player.setOnProgressListener {
-            val duration = player.duration;
+            val duration = player.duration
             if(duration != 0){
                 runOnUiThread{
                     seek_bar.progress = it/duration * 100
@@ -92,6 +103,12 @@ class MainActivity : AppCompatActivity() {
             }
 
         })
+        btn_start_live.setOnClickListener {
+            //http://59.111.90.142:8080/stat to check state
+            //ffplay "rtmp://59.111.90.142/myapp live=1" to watch live
+            pusher.startLive("rtmp://59.111.90.142/myapp/")
+        }
+        text_info.text = player.stringFromJNI()
     }
 
     private fun chooseFile() {
@@ -142,7 +159,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        player.stop();
+        player.stop()
     }
 
 

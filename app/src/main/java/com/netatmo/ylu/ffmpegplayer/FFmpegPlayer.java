@@ -52,6 +52,8 @@ public class FFmpegPlayer implements SurfaceHolder.Callback{
         native_prepare(path);
     }
 
+    public native String stringFromJNI();
+
     public native void stopNative();
 
     public native void releaseNative();

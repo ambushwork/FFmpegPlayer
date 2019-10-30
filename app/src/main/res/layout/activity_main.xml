@@ -52,11 +52,20 @@
             android:id="@+id/button_prepare"
             android:text="Prepare"/>
 
+    <Button android:id="@+id/btn_start_live"
+            android:text="Start live"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
     <SeekBar android:layout_width="match_parent"
              android:layout_height="wrap_content"
              android:id="@+id/seek_bar"
     android:max="100"
     android:visibility="gone"/>
+
+    <TextView android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+    android:id="@+id/text_info"/>
 
 
 </LinearLayout>

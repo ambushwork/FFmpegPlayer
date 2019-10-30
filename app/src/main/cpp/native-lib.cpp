@@ -4,6 +4,12 @@
 #include <zconf.h>
 #include <android/log.h>
 #include "FFmpegCore.h"
+#include "librtmp/rtmp.h"
+#include "VideoPushChannel.h"
+#include "librtmp/rtmp.h"
+#include "x264.h"
+#include "AudioPushChannel.h"
+
 
 #define MAX_AUDIO_FRME_SIZE 48000 *4
 extern "C" {
@@ -15,11 +21,14 @@ extern "C" {
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_netatmo_ylu_ffmpegplayer_MainActivity_stringFromJNI(
+Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_stringFromJNI(
         JNIEnv* env,
         jobject /* this */) {
     std::string hello = "Hello from C++";
-    return env->NewStringUTF(av_version_info());
+    char version[50];
+    sprintf(version, "librtmp version :%d", RTMP_LibVersion());
+    x264_picture_t *picture = new x264_picture_t;
+    return env->NewStringUTF(version);
 }
 
 
@@ -354,4 +363,99 @@ Java_com_netatmo_ylu_ffmpegplayer_FFmpegPlayer_seekToNative(JNIEnv *env, jobject
         return fFmpegCore->seekTo(playProgress);
     }
 
+}
+
+VideoPushChannel *videoPushChannel;
+AudioPushChannel *audioPushChannel;
+BasePushChannel *basePushChannel;
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1init(JNIEnv *env, jobject instance) {
+
+    //encoder
+    basePushChannel = new BasePushChannel;
+    videoPushChannel = new VideoPushChannel(basePushChannel);
+    audioPushChannel = new AudioPushChannel(basePushChannel);
+
+
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1start_1live(JNIEnv *env, jobject instance, jstring path_) {
+    const char *path = env->GetStringUTFChars(path_, 0);
+    char *url = new char(strlen(path) + 1);
+    strcpy(url, path);
+
+    //create thread to push live
+    basePushChannel->startLive(url);
+
+    env->ReleaseStringUTFChars(path_, path);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1stop(JNIEnv *env, jobject instance) {
+
+    basePushChannel->stopLive();
+
+}extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1pushVideo(JNIEnv *env, jobject instance, jbyteArray data_) {
+    jbyte *data = env->GetByteArrayElements(data_, NULL);
+
+    if(!videoPushChannel || !basePushChannel->isConnected){
+        return;
+    }
+
+    videoPushChannel->encodeData(data);
+    jbyte *data1= env->GetByteArrayElements(data_,NULL);
+    env->ReleaseByteArrayElements(data_,data1, 0);
+}
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1initVideoEncoder(JNIEnv *env, jobject instance, jint w, jint h,
+                                                                       jint fps, jint bitrate) {
+
+    if(videoPushChannel){
+        videoPushChannel->initVideoEncoder(w,h,fps, bitrate);
+    }
+
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1initAudioEncoder(JNIEnv *env, jobject thiz,
+                                                                       jint sample_rate,
+                                                                       jint num_channels) {
+    if(audioPushChannel){
+        audioPushChannel->initAudioEncoder(sample_rate, num_channels);
+    }
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_getInputSamples(JNIEnv *env, jobject thiz) {
+    if (audioPushChannel) {
+        return audioPushChannel->getInputSamples();
+    }
+    return -1;
+}
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_netatmo_ylu_ffmpegplayer_PushManager_native_1pushAudio(JNIEnv *env, jobject thiz,
+                                                                jbyteArray bytes) {
+    if(!audioPushChannel|| !basePushChannel->isConnected){
+        return;
+    }
+
+    jbyte *data1= env->GetByteArrayElements(bytes,NULL);
+    audioPushChannel->encodeData(data1);
+    env->ReleaseByteArrayElements(bytes,data1, 0);
 }

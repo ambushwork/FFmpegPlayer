@@ -7,11 +7,15 @@ cmake_minimum_required(VERSION 3.4.1)
 file(GLOB SOURCE src/main/cpp/*.cpp)
 #aux_source_directory()
 
+add_subdirectory(src/main/cpp/librtmp)
+
 add_library(
              ffmpegplayer
              SHARED
              ${SOURCE})
-include_directories(src/main/cpp/include)
+include_directories(src/main/cpp/include
+        librtmp
+        libfaac/include)
 
 set(my_lib_path ${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI})
 
@@ -19,15 +23,18 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${my_lib_path}")
 
 find_library(
               log-lib
-              log )
+        log )
 target_link_libraries( # Specifies the target library.
-                ffmpegplayer
-                -Wl,--start-group
-                avformat avcodec avutil swresample swscale avfilter
-                -Wl,--end-group
+        ffmpegplayer
+        rtmp
+        faac
+        -Wl,--start-group
+        avformat avcodec avutil swresample swscale avfilter
+        -Wl,--end-group
         # Links the target library to the log library
-               # included in the NDK.
-               ${log-lib}
+        # included in the NDK.
+        ${log-lib}
                 z
+                x264
                 OpenSLES
                  android)
